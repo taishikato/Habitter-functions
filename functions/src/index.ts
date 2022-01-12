@@ -40,7 +40,7 @@ exports.sendPushnotifications = functions.pubsub.schedule('* * * * *').onRun(asy
   }
 
   if (todo2Push.length === 0) {
-    logger.info('INFO no data to send a push notification')
+    logger.info('No data. The process is done and not send a push notification.')
     return
   }
 
