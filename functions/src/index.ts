@@ -21,6 +21,7 @@ type User = {
 type Todo2Push = {
   userId: string
   todoName: string
+  habitName: string
   fcmToken: string
 }
 
@@ -62,6 +63,7 @@ exports.sendPushnotifications = functions.pubsub.schedule('* * * * *').onRun(asy
         todo2Push.push({
           userId: habit.userId,
           todoName: todo.name,
+          habitName: habit.name,
           fcmToken,
         })
       }
@@ -78,7 +80,7 @@ exports.sendPushnotifications = functions.pubsub.schedule('* * * * *').onRun(asy
       token: todo?.fcmToken,
       notification: {
         title: todo.todoName,
-        body: 'wooq',
+        body: `This todo is in a habit - ${todo.habitName}`,
       },
     }
 
