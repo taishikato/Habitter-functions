@@ -11,21 +11,49 @@ dayjs.extend(timezone)
 admin.initializeApp()
 const db = admin.firestore()
 
+const defaultTimezone = 'America/Los_Angeles'
+
+type User = {
+  timezone?: string
+  fcmToken?: string
+}
+
+type Todo2Push = {
+  userId: string
+  todoName: string
+  fcmToken: string
+}
+
 exports.sendPushnotifications = functions.pubsub.schedule('* * * * *').onRun(async (context) => {
   // get the present timestamp
   const timestamp = Math.floor(Date.now() / 1000)
-  // format to HH:mm
-  const presentTime = dayjs.unix(timestamp).tz('Asia/Tokyo').format('HH:mm')
 
-  logger.info('Time', presentTime)
+  const todo2Push: Todo2Push[] = []
 
-  const todo2Push: any[] = []
-
-  // fetch todos
+  // fetch habits
   const habitsSnapshot = await db.collection('habits').get()
   for (const habitData of habitsSnapshot.docs) {
+    // get the habit data
     const habit = habitData.data()
     const habitId = habitData.id
+
+    // get the habit's owner
+    const userData = await db.collection('users').doc(habit.userId).get()
+    const user = userData.data() as User
+
+    const { fcmToken } = user
+    if (!fcmToken) {
+      logger.info('The user does not have a fcm token, thus the proces is done.')
+      return
+    }
+
+    // format to HH:mm
+    const presentTime = dayjs
+      .unix(timestamp)
+      .tz(user?.timezone || defaultTimezone)
+      .format('HH:mm')
+
+    logger.info(`Time: ${presentTime}, Timezone: ${user.timezone}`)
 
     const todosSnapshot = await db.collection('habits').doc(habitId).collection('todos').get()
     todosSnapshot.docs.forEach((todoData) => {
@@ -33,7 +61,8 @@ exports.sendPushnotifications = functions.pubsub.schedule('* * * * *').onRun(asy
       if (todo.doTime === presentTime) {
         todo2Push.push({
           userId: habit.userId,
-          name: todo.name,
+          todoName: todo.name,
+          fcmToken,
         })
       }
     })
@@ -50,7 +79,7 @@ exports.sendPushnotifications = functions.pubsub.schedule('* * * * *').onRun(asy
     const payload = {
       token: user?.fcmToken,
       notification: {
-        title: todo.name,
+        title: todo.todoName,
         body: 'wooq',
       },
     }
