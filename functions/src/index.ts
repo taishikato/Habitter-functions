@@ -74,10 +74,8 @@ exports.sendPushnotifications = functions.pubsub.schedule('* * * * *').onRun(asy
   }
 
   for (const todo of todo2Push) {
-    const userData = await db.collection('users').doc(todo.userId).get()
-    const user = userData.data()
     const payload = {
-      token: user?.fcmToken,
+      token: todo?.fcmToken,
       notification: {
         title: todo.todoName,
         body: 'wooq',
